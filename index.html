@@ -266,6 +266,14 @@ textarea:focus{outline:none;border-color:var(--s1)}
   </div>
 
   <div id="hostStrip"></div>
+  <form class="card stack" id="loginCard" hidden autocomplete="off">
+    <h2 style="margin:0">Ref login</h2>
+    <p class="muted" style="margin:0">Only the ref can change the bracket. Everyone else just watches.</p>
+    <label class="field" for="pinIn" style="margin:0">Ref PIN</label>
+    <input type="text" id="pinIn" inputmode="numeric" pattern="[0-9]*" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" style="-webkit-text-security:disc;letter-spacing:.3em">
+    <p class="hint" id="pinMsg" style="margin:0"></p>
+    <div class="btn-row"><button type="button" class="btn" id="pinCancel">Cancel</button><button type="submit" class="btn dark" id="pinGo">Unlock</button></div>
+  </form>
 
   <header class="hero">
     <span class="eyebrow">tap out anytime · loser gets inked</span>
@@ -318,7 +326,7 @@ textarea:focus{outline:none;border-color:var(--s1)}
   <!-- REF / HOST -->
   <section class="view" id="v-setup" aria-label="Ref controls"></section>
 
-  <p class="foot">made for a very good night · <a href="#" id="hostLink">ref login</a></p>
+  <p class="foot">made for a very good night<span id="refWrap" hidden> · <a href="#" id="hostLink">ref login</a></span></p>
 </div>
 
 <nav class="tabs" role="tablist">
@@ -328,15 +336,7 @@ textarea:focus{outline:none;border-color:var(--s1)}
   </div>
 </nav>
 
-<dialog id="pinDlg">
-  <form method="dialog" class="stack">
-    <h2 style="font-family:'Bowlby One';font-weight:400;margin:0;text-transform:uppercase">Ref login</h2>
-    <p class="muted" style="margin:0">Only the ref's phone can change the bracket. Everyone else just watches.</p>
-    <label class="field" for="pinIn">Ref PIN</label>
-    <input type="password" id="pinIn" inputmode="numeric" autocomplete="off">
-    <div class="btn-row"><button class="btn" value="cancel">Cancel</button><button class="btn dark" value="ok">Unlock</button></div>
-  </form>
-</dialog>
+
 <div class="toast" id="toast" role="status"></div>
 <script>
 /* =========================================================
@@ -344,7 +344,7 @@ textarea:focus{outline:none;border-color:var(--s1)}
    ========================================================= */
 const ROOM = "Orgy Room - Ev's Room";   // live channel name — any text works; spaces/symbols get turned into dashes
 const HOST_PIN = "4242";                            // ref PIN that unlocks the controls
-const DEFAULT_PRIZE = "$10 Eat'n Park gift card & Ask Me About My Wiener T-Shirt";
+const DEFAULT_PRIZE = "$10 Eat'n Park gift card";
 
 /* ---------------- the three rule sets ---------------- */
 const RULES = [
@@ -498,43 +498,54 @@ function recordWin(winner){
 }
 function reopen(mid){ const m=findMatch(mid); if(!m||isBye(m)) return; snap(); m.w=null; S.champ=null; commit(); toast("Result cleared"); }
 
-/* ---------------- sync via ntfy.sh ---------------- */
-// ntfy channel names may only use A-Z a-z 0-9 _ - (max 64). Clean whatever was typed so it can never 404.
+/* ---------------- sync: fan-out to several free ntfy relays ----------------
+   The ref sends every update to ALL relays; phones listen to ALL and keep the newest.
+   If one relay is down or rate-limits your Wi-Fi, the others keep the game live. */
+const RELAYS=["https://ntfy.sh","https://ntfy.envs.net","https://ntfy.adminforge.de","https://ntfy.mzte.de"];
 const CHANNEL=(ROOM.normalize("NFKD").replace(/[^A-Za-z0-9_-]+/g,"-").replace(/-{2,}/g,"-").replace(/^-+|-+$/g,"").slice(0,64))||"sockhop-smackdown";
-const BASE="https://ntfy.sh/"+CHANNEL;
-const CACHE_KEY="shs3_"+CHANNEL;
-const CLIENT=uid()+uid();          // this browser tab
-let mySeq=0, lastSrv=0, synced=false, pubTimer=null, inflight=false, again=false, lastSent=0, sendErr="";
+const CACHE_KEY="shs4_"+CHANNEL;
+const CLIENT=uid()+uid();
+const rs=RELAYS.map(u=>({u,ok:null,code:"",sent:0,pause:0}));   // per-relay status
+let pubTimer=null, inflight=false, again=false, retryTimer=null, backoff=5000;
+const rev=st=>(st&&st.rev)||0;
+function newer(a,b){ return rev(a)>rev(b) || (rev(a)===rev(b) && (a.ts||0)>(b.ts||0)); }
 function commitQuiet(){
-  S.ts=Date.now(); if(DEMO){lastTs=S.ts;return;}
-  S.by=CLIENT; S.seq=++mySeq;
+  if(DEMO){ S.ts=Date.now(); return; }
+  S.ts=Date.now(); S.rev=rev(S)+1; S.by=CLIENT;
   localStorage.setItem(CACHE_KEY,JSON.stringify(S));
-  clearTimeout(pubTimer); pubTimer=setTimeout(publish,1200);   // batch rapid taps into one send
+  clearTimeout(pubTimer); pubTimer=setTimeout(publish,1500);    // batch quick taps into one send
 }
 function commit(){ commitQuiet(); render(); }
+async function sendTo(r,body){
+  if(r.pause>Date.now()) return false;
+  try{
+    const res=await fetch(r.u+"/"+CHANNEL,{method:"POST",body});
+    r.code=res.status;
+    if(res.ok){ r.ok=true; r.sent=Date.now(); return true; }
+    r.ok=false; if(res.status===429) r.pause=Date.now()+60000;    // rate-limited: rest this relay 1 min
+    return false;
+  }catch(e){ r.ok=false; r.code="no connection"; return false; }
+}
 async function publish(){
   if(!isHost||!S||DEMO) return;
   if(inflight){ again=true; return; }
-  inflight=true; again=false;
-  try{
-    const r=await fetch(BASE,{method:"POST",body:JSON.stringify(S)});
-    if(r.status===429){ sendErr="too many updates too fast. Waiting 15s, then retrying"; setLive(false,"slowing down…"); inflight=false; setTimeout(publish,15000); renderSync(); return; }
-    if(!r.ok) throw new Error("HTTP "+r.status);
-    sendErr=""; lastSent=Date.now(); setLive(true,"live · you're the ref");
-  }catch(e){ sendErr="couldn't reach the live server ("+(e.message||"offline")+"). Retrying"; setLive(false,"not sending — retrying"); inflight=false; setTimeout(publish,5000); renderSync(); return; }
-  inflight=false; renderSync();
+  inflight=true; again=false; clearTimeout(retryTimer);
+  const body=JSON.stringify(S);
+  const results=await Promise.all(rs.map(r=>sendTo(r,body)));
+  inflight=false;
+  const good=results.filter(Boolean).length;
+  if(good){ backoff=5000; setLive(true,`live · you're the ref`); }
+  else { setLive(false,"not sending — retrying"); retryTimer=setTimeout(publish,backoff); backoff=Math.min(backoff*2,120000); }  // ONE timer, slows down
+  renderSync();
   if(again) publish();
 }
 async function ingest(msg){
   if(DEMO) return;
   try{
-    if(msg.time && msg.time<lastSrv) return;                       // older than what we have (server clock, not phone clocks)
     let txt=msg.message;
-    if(msg.attachment&&msg.attachment.url) txt=await (await fetch(msg.attachment.url)).text();
+    if(msg.attachment&&msg.attachment.url){ const r=await fetch(msg.attachment.url); if(!r.ok) return; txt=await r.text(); }
     const st=JSON.parse(txt); if(!st||!(st.v>=2)||!st.ts) return;
-    if(msg.time) lastSrv=msg.time;
-    synced=true;
-    if(st.by===CLIENT && st.seq<=mySeq) { renderSync(); return; } // our own echo
+    if(S && !newer(st,S)) return;                         // same or older than what's on screen
     const prev=S&&S.hist&&S.hist[0]?JSON.stringify(S.hist[0]):null;
     S=st.cleared?null:st; lastTs=st.ts;
     if(S) localStorage.setItem(CACHE_KEY,JSON.stringify(S)); else localStorage.removeItem(CACHE_KEY);
@@ -543,28 +554,35 @@ async function ingest(msg){
     if(S&&S.hist&&S.hist[0]&&prev!==null&&JSON.stringify(S.hist[0])!==prev) confetti();
   }catch(e){}
 }
-async function pollLatest(){
-  try{ const r=await fetch(BASE+"/json?poll=1&since=latest"); if(!r.ok) throw 0; const t=await r.text();
-    synced=true;
-    for(const l of t.trim().split("\n").filter(Boolean)){ const m=JSON.parse(l); if(m.event==="message") await ingest(m); } return true;
+async function pollOne(r){
+  try{ const res=await fetch(r.u+"/"+CHANNEL+"/json?poll=1&since=latest"); if(!res.ok) return false;
+    const t=await res.text();
+    for(const l of t.trim().split("\n").filter(Boolean)){ const m=JSON.parse(l); if(m.event==="message") await ingest(m); }
+    return true;
   }catch(e){ return false; }
 }
+async function pollLatest(){ const ok=await Promise.all(rs.map(pollOne)); return ok.some(Boolean); }
+let liveConns=0;
 function subscribe(){
-  try{ const es=new EventSource(BASE+"/sse");
-    es.onopen=()=>{ setLive(true,isHost?"live · you're the ref":"live"); pollLatest(); };   // catch up on anything missed while disconnected
-    es.onmessage=e=>{const m=JSON.parse(e.data); if(m.event==="message") ingest(m);};
-    es.onerror=()=>setLive(false,"reconnecting…");
-  }catch(e){ setInterval(pollLatest,30000); }
+  rs.forEach(r=>{
+    try{ const es=new EventSource(r.u+"/"+CHANNEL+"/sse"); let up=false;
+      es.onopen=()=>{ if(!up){up=true;liveConns++;} setLive(true,isHost?"live · you're the ref":"live"); pollOne(r); };
+      es.onmessage=e=>{ const m=JSON.parse(e.data); if(m.event==="message") ingest(m); };
+      es.onerror=()=>{ if(up){up=false;liveConns--;} if(liveConns<=0) setLive(false,"reconnecting…"); };
+    }catch(e){}
+  });
+  setInterval(pollLatest,60000);   // safety net
 }
 function setLive(on,txt){$("#livePill").classList.toggle("on",on);$("#liveTxt").textContent=txt;}
 function renderSync(){
   const el=document.getElementById("syncInfo"); if(!el) return;
-  const ago=lastSent?Math.round((Date.now()-lastSent)/1000):null;
-  el.innerHTML = sendErr ? `<b style="color:var(--red)">⚠ ${esc(sendErr)}</b>`
-    : `✓ channel <b>${esc(CHANNEL)}</b>${ago!==null?` · last sent ${ago<5?"just now":ago+"s ago"}`:" · nothing sent yet"}`;
+  const host=u=>u.replace("https://","");
+  const good=rs.filter(r=>r.ok).length;
+  el.innerHTML=`<b>${good?`✓ sending to ${good} of ${rs.length} relays`:`⚠ no relay accepted the last update. Retrying automatically`}</b> · channel <code>${esc(CHANNEL)}</code><br>`+
+    rs.map(r=>`${r.ok===null?"○":r.ok?"🟢":"🔴"} ${host(r.u)}${r.ok===false?` <span style="color:var(--red)">(${esc(r.code)}${r.code==429?" = rate-limited, resting 1 min":""})</span>`:r.sent?` · ${Math.round((Date.now()-r.sent)/1000)}s ago`:""}`).join("<br>");
 }
 setInterval(renderSync,5000);
-setInterval(()=>{ if(isHost&&S&&S.players.length) publish(); }, 20*60*1000);   // keep state fresh for latecomers
+setInterval(()=>{ if(isHost&&S&&S.players.length) publish(); }, 20*60*1000);   // keeps the game fresh for late joiners
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden&&!DEMO) pollLatest(); });
 
 /* ---------------- Google Sheet import ---------------- */
@@ -795,7 +813,7 @@ function renderSetup(){
   <div class="card stack">
     <h2 style="margin:0">4 · Share & reset</h2>
     <button class="btn" id="copyLink">📋 Copy the link for everyone</button>
-    <p class="hint" id="syncInfo" style="margin:0"></p>
+    <p class="hint" id="syncInfo" style="margin:0;line-height:1.7"></p>
     <button class="btn" id="pullLive">🔄 Pull the live game onto this device</button>
     <button class="btn" id="republish">📡 Re-send to everyone's phone</button>
     ${undoStack.length?`<button class="btn" id="undo2">↶ Undo last change</button>`:""}
@@ -828,7 +846,7 @@ function renderSetup(){
   const gl=q("#goLive"); if(gl) gl.onclick=()=>showView("live");
   q("#copyLink").onclick=async()=>{const url=location.origin+location.pathname; try{await navigator.clipboard.writeText(url);toast("Link copied");}catch(e){prompt("Copy this link:",url);}};
   q("#republish").onclick=()=>{publish();toast("Sending…");};
-  q("#pullLive").onclick=async()=>{ lastSrv=0; const ok=await pollLatest(); toast(ok?"Synced with the live game":"Couldn't reach the live server"); render(); };
+  q("#pullLive").onclick=async()=>{ const ok=await pollLatest(); toast(ok?"Synced with the live game":"Couldn't reach the live server"); render(); };
   renderSync();
   const u2=q("#undo2"); if(u2) u2.onclick=undo;
   q("#wipe").onclick=()=>{ if(!confirm("Wipe the roster, the bracket, and the ink board for everyone?")) return;
@@ -854,8 +872,19 @@ function enterHost(){
 }
 $("#hostLink").onclick=e=>{e.preventDefault();
   if(isHost){ isHost=false; sessionStorage.removeItem("shs_host"); const t=document.querySelector('.tab[data-v="setup"]'); if(t) t.remove(); showView("live"); render(); return; }
-  $("#pinIn").value=""; $("#pinDlg").showModal(); };
-$("#pinDlg").addEventListener("close",()=>{ if($("#pinDlg").returnValue==="ok"){ if($("#pinIn").value===HOST_PIN){ toast("Pulling the live game…"); pollLatest().then(()=>{ enterHost(); toast("Ref mode on 🦓"); if(!S.players.length) showView("setup"); }); return; } else toast("Wrong PIN"); }});
+  openLogin(); };
+function openLogin(){ const c=$("#loginCard"); c.hidden=false; $("#pinMsg").textContent=""; $("#pinIn").value=""; showView("live"); setTimeout(()=>{ c.scrollIntoView({block:"center"}); $("#pinIn").focus(); },50); }
+$("#pinCancel").onclick=()=>{ $("#loginCard").hidden=true; };
+$("#loginCard").addEventListener("submit",async e=>{     // fires for the Unlock button AND the keyboard's Go/Enter key
+  e.preventDefault();
+  const v=$("#pinIn").value.replace(/\s+/g,"");
+  if(v!==String(HOST_PIN).trim()){ $("#pinMsg").innerHTML='<b style="color:var(--red)">That PIN didn\'t match. Try again.</b>'; $("#pinIn").select(); return; }
+  $("#pinGo").disabled=true; $("#pinMsg").textContent="Pulling the live game…";
+  $("#pinIn").blur();
+  await Promise.race([pollLatest(), new Promise(r=>setTimeout(r,4000))]);   // never hang on a slow network
+  $("#pinGo").disabled=false; $("#loginCard").hidden=true;
+  enterHost(); toast("Ref mode on 🦓"); if(!S.players.length) showView("setup");
+});
 
 /* ---------------- confetti (with socks) ---------------- */
 function confetti(n=140){
@@ -883,6 +912,8 @@ function loadDemo(){
 
 /* ---------------- boot ---------------- */
 (async function boot(){
+  const qp=new URLSearchParams(location.search);
+  if(qp.has("ref")||DEMO||sessionStorage.getItem("shs_host")==="1") $("#refWrap").hidden=false;
   if(DEMO){ loadDemo(); if(DEMO==="ref"||DEMO==="builder"){ enterHost(); if(DEMO==="builder") showView("setup"); } setLive(true,"demo preview"); render(); return; }
   const saved=localStorage.getItem(CACHE_KEY);
   if(saved){ try{ S=JSON.parse(saved); }catch(e){} }   // shown only until the live copy arrives
