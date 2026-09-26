@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#fff8fb">
+<title>Sock Hop Smackdown — live bracket</title>
+<meta name="description" content="Live bracket, who's up next, and the rules menu for tonight's wrestling night.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Kalam:wght@400;700&family=Figtree:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   SOCK HOP SMACKDOWN — one-file live bracket
+   Theme borrows from T4T Mix: pastel blobs, ink #2b2036,
+   pride "skins", Kalam handwriting. Poster type = Bowlby One.
+   ========================================================= */
+:root{
+  --ink:#2b2036; --ink-soft:#7a6b8a; --line:#eee0f3; --card:#ffffff;
+  --radius:20px; --shadow:0 10px 30px rgba(43,32,54,.12);
+  --s1:#5BCEFA; --s2:#F5A9B8; --s3:#ffffff; /* skin (trans default) */
+  --tape:#fff4b8;
+  --win:#1a9c52; --red:#d62900;
+}
+body[data-skin="lesbian"]{--s1:#D62900;--s2:#FF9B55;--s3:#D462A6}
+body[data-skin="bi"]{--s1:#D60270;--s2:#9B4F96;--s3:#0038A8}
+body[data-skin="nb"]{--s1:#FCF434;--s2:#9C59D1;--s3:#2C2C2C}
+body[data-skin="pride"]{--s1:#E70000;--s2:#FF8C00;--s3:#0044FF}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; font-family:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
+  color:var(--ink); min-height:100vh; overflow-x:hidden;
+  background:linear-gradient(180deg,#fff8fb 0%,#f3f7ff 100%);
+  padding-bottom:calc(84px + env(safe-area-inset-bottom));
+}
+.bg-blobs{position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+   radial-gradient(circle at 12% 18%, color-mix(in srgb,var(--s1) 28%,transparent), transparent 42%),
+   radial-gradient(circle at 88% 12%, color-mix(in srgb,var(--s2) 32%,transparent), transparent 42%),
+   radial-gradient(circle at 50% 95%, rgba(156,89,209,.14), transparent 45%);}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--s1);outline-offset:2px;border-radius:8px}
+
+.wrap{max-width:560px;margin:0 auto;padding:18px 16px 30px}
+
+/* ---------- header ---------- */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
+.live-pill{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:800;letter-spacing:.06em;
+  text-transform:uppercase;background:rgba(255,255,255,.8);padding:6px 12px;border-radius:999px;box-shadow:var(--shadow)}
+.live-dot{width:9px;height:9px;border-radius:50%;background:#bbb}
+.live-pill.on .live-dot{background:#ff3b6b;box-shadow:0 0 0 0 rgba(255,59,107,.6);animation:pulse 1.6s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 9px rgba(255,59,107,0)}100%{box-shadow:0 0 0 0 rgba(255,59,107,0)}}
+.skins{display:flex;gap:6px}
+.skin{width:22px;height:22px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.15);cursor:pointer;padding:0}
+.skin[aria-pressed="true"]{outline:2px solid var(--ink);outline-offset:1px}
+.skin[data-s="trans"]{background:linear-gradient(#5BCEFA 0 33%,#F5A9B8 33% 45%,#fff 45% 55%,#F5A9B8 55% 67%,#5BCEFA 67%)}
+.skin[data-s="lesbian"]{background:linear-gradient(#D62900 0 20%,#FF9B55 20% 40%,#fff 40% 60%,#D462A6 60% 80%,#A50062 80%)}
+.skin[data-s="bi"]{background:linear-gradient(#D60270 0 40%,#9B4F96 40% 60%,#0038A8 60%)}
+.skin[data-s="nb"]{background:linear-gradient(#FCF434 0 25%,#fff 25% 50%,#9C59D1 50% 75%,#2C2C2C 75%)}
+.skin[data-s="pride"]{background:linear-gradient(#E70000 0 17%,#FF8C00 17% 33%,#FFEF00 33% 50%,#00811F 50% 67%,#0044FF 67% 83%,#760089 83%)}
+
+.hero{text-align:center;margin:6px 0 18px}
+.eyebrow{font-family:'Kalam',cursive;font-size:17px;color:var(--ink-soft);transform:rotate(-2deg);display:inline-block}
+.title{font-family:'Bowlby One',Impact,sans-serif;font-size:clamp(38px,11vw,58px);line-height:.92;margin:4px 0 6px;
+  letter-spacing:-.5px;text-transform:uppercase;word-break:break-word}
+.title .t-a{background:linear-gradient(90deg,var(--s1),var(--s2));-webkit-background-clip:text;background-clip:text;color:transparent;
+  -webkit-text-stroke:1.5px var(--ink);paint-order:stroke fill}
+.subline{font-size:14.5px;color:var(--ink-soft);margin:0}
+.fmt-chip{display:inline-block;margin-top:10px;font-weight:800;font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+  background:var(--ink);color:#fff;padding:5px 12px;border-radius:999px}
+
+/* ---------- cards ---------- */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;margin-bottom:16px}
+.card h2{font-family:'Bowlby One',Impact,sans-serif;font-size:19px;font-weight:400;margin:0 0 12px;text-transform:uppercase;letter-spacing:.02em}
+.card h2 small{font-family:'Kalam',cursive;text-transform:none;font-size:15px;color:var(--ink-soft);margin-left:6px;letter-spacing:0}
+.muted{color:var(--ink-soft);font-size:14px}
+
+/* ---------- SIGNATURE: the fight poster ---------- */
+.poster{position:relative;border-radius:24px;padding:22px 16px 18px;margin-bottom:16px;overflow:hidden;color:var(--ink);
+  background:
+    repeating-linear-gradient(135deg,rgba(255,255,255,.18) 0 12px,transparent 12px 24px),
+    linear-gradient(135deg,var(--s1),var(--s2));
+  box-shadow:0 14px 34px color-mix(in srgb,var(--s1) 40%,transparent), inset 0 0 0 3px var(--ink)}
+.poster-label{position:absolute;top:12px;left:50%;transform:translateX(-50%) rotate(-2deg);background:var(--ink);color:#fff;
+  font-weight:800;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;padding:5px 12px;border-radius:6px;white-space:nowrap}
+.fighters{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:6px;margin-top:26px}
+.fighter{position:relative;background:var(--tape);padding:14px 8px 12px;text-align:center;min-height:86px;
+  display:flex;flex-direction:column;justify-content:center;box-shadow:0 4px 0 rgba(43,32,54,.18);
+  clip-path:polygon(2% 6%,98% 0,100% 94%,0 100%)}
+.fighter:nth-child(1){transform:rotate(-3deg)}
+.fighter:nth-child(3){transform:rotate(2.5deg)}
+.f-name{font-family:'Kalam',cursive;font-weight:700;font-size:clamp(20px,6vw,28px);line-height:1.05;word-break:break-word}
+.f-tag{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin-top:4px}
+.vs{font-family:'Bowlby One',Impact,sans-serif;font-size:34px;color:#fff;-webkit-text-stroke:2px var(--ink);paint-order:stroke fill;
+  transform:rotate(-8deg);padding:0 2px}
+.rule-banner{margin-top:16px;background:rgba(255,255,255,.88);border-radius:14px;padding:11px 12px;text-align:center}
+.rb-kicker{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft)}
+.rb-name{font-family:'Bowlby One',Impact,sans-serif;font-size:21px;text-transform:uppercase;margin:2px 0}
+.rb-win{font-size:13.5px;line-height:1.4}
+.clock{margin-top:12px;text-align:center;font-family:'Bowlby One',Impact,sans-serif;font-size:44px;letter-spacing:.04em;
+  color:#fff;-webkit-text-stroke:2px var(--ink);paint-order:stroke fill;line-height:1}
+.clock.low{animation:shake .35s infinite}
+@keyframes shake{25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
+.poster.empty .fighters{display:block;text-align:center;margin-top:30px}
+.poster-empty{font-family:'Kalam',cursive;font-size:22px;line-height:1.25;background:var(--tape);display:inline-block;padding:12px 16px;transform:rotate(-2deg)}
+.champ{text-align:center;margin-top:26px}
+.champ .crown{font-size:56px;line-height:1}
+.champ .f-name{font-size:36px;background:var(--tape);display:inline-block;padding:6px 18px;transform:rotate(-2deg);margin-top:6px}
+
+/* ---------- queue ---------- */
+.queue{list-style:none;margin:0;padding:0}
+.queue li{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px dashed var(--line)}
+.queue li:first-child{border-top:none}
+.q-num{flex:0 0 30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:13px;
+  background:color-mix(in srgb,var(--s2) 35%,#fff)}
+.q-main{flex:1;min-width:0}
+.q-names{font-weight:800;font-size:15.5px}
+.q-meta{font-size:12.5px;color:var(--ink-soft)}
+.pill{display:inline-block;font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;background:#f4ecf8;color:#5c4d6b}
+.pill.win{background:#e8f9ee;color:var(--win)}
+
+/* ---------- bracket ---------- */
+.bracket-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -18px;padding:4px 18px 8px;scroll-snap-type:x proximity}
+.bracket{display:flex;gap:18px;min-width:max-content}
+.round{display:flex;flex-direction:column;justify-content:space-around;gap:12px;min-width:168px;scroll-snap-align:start}
+.round-title{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);text-align:center}
+.bm{border:2px solid var(--ink);border-radius:12px;overflow:hidden;background:#fff;position:relative}
+.bm.live{box-shadow:0 0 0 4px color-mix(in srgb,var(--s1) 55%,transparent)}
+.bm-row{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:8px 10px;font-weight:600;font-size:14px}
+.bm-row+.bm-row{border-top:1px dashed #d9cbe3}
+.bm-row.w{background:color-mix(in srgb,var(--s1) 22%,#fff);font-weight:800}
+.bm-row.l{color:#b1a4bd;text-decoration:line-through}
+.bm-row .tbd{color:#b1a4bd;font-style:italic;font-weight:400}
+.bm-rule{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:3px 10px;background:#faf5fc;color:var(--ink-soft);border-top:1px dashed #d9cbe3}
+
+/* ---------- standings ---------- */
+table.stand{width:100%;border-collapse:collapse;font-size:14.5px}
+.stand th{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);text-align:right;padding:6px 4px;font-weight:800}
+.stand th:first-child,.stand td:first-child{text-align:left}
+.stand td{padding:9px 4px;border-top:1px dashed var(--line);text-align:right;font-variant-numeric:tabular-nums}
+.stand tr.top td{font-weight:800}
+.stand .nm{font-weight:700}
+
+/* ---------- rules ---------- */
+.rules{display:grid;gap:10px}
+.rule{border:2px solid var(--line);border-radius:14px;padding:12px 14px;background:#fff}
+.rule-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.rule-name{font-family:'Bowlby One',Impact,sans-serif;font-size:16px;text-transform:uppercase}
+.rule-time{font-size:12px;font-weight:800;color:var(--ink-soft);white-space:nowrap}
+.rule p{margin:6px 0 0;font-size:14px;line-height:1.45}
+.safety{background:var(--ink);color:#fff}
+.safety h2{color:#fff}
+.safety ul{margin:0;padding-left:18px;line-height:1.55;font-size:14.5px}
+.safety li{margin-bottom:6px}
+.safety strong{color:var(--tape)}
+.hand{font-family:'Kalam',cursive;font-size:17px}
+
+/* ---------- tabs ---------- */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);
+  border-top:1px solid var(--line);display:flex;justify-content:center;padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+.tabs-in{display:flex;max-width:560px;width:100%}
+.tab{flex:1;border:none;background:none;padding:8px 2px;border-radius:12px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;
+  font-size:11.5px;font-weight:800;color:var(--ink-soft)}
+.tab .ic{font-size:20px;line-height:1}
+.tab[aria-selected="true"]{color:var(--ink);background:color-mix(in srgb,var(--s2) 28%,#fff)}
+.view{display:none}.view.on{display:block;animation:fade .3s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ---------- host controls ---------- */
+.btn{border:none;border-radius:14px;padding:13px 16px;font-weight:800;font-size:15px;cursor:pointer;background:#fff;border:2px solid #e4d7ee}
+.btn.primary{background:linear-gradient(90deg,var(--s1),var(--s2));border-color:transparent;color:var(--ink);box-shadow:0 8px 20px color-mix(in srgb,var(--s1) 35%,transparent)}
+.btn.dark{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.danger{color:var(--red);border-color:#f3c9bd}
+.btn.sm{padding:8px 12px;font-size:13px;border-radius:10px}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+.btn-row .btn{flex:1}
+.host-strip{background:repeating-linear-gradient(45deg,var(--tape) 0 14px,#fff 14px 28px);border:2px dashed var(--ink);border-radius:16px;
+  padding:10px 12px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:800;font-size:13px}
+.field{display:block;font-size:13px;font-weight:800;color:#5c4d6b;margin:0 0 6px}
+input[type=text],input[type=password],select{width:100%;padding:12px 14px;border-radius:12px;border:2px solid #eee0f3;font:inherit;font-size:16px;background:#fff;color:var(--ink)}
+input:focus,select:focus{outline:none;border-color:var(--s1)}
+.addrow{display:flex;gap:8px}
+.addrow input{flex:1}
+.roster{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--tape);padding:6px 6px 6px 12px;border-radius:999px;font-family:'Kalam',cursive;font-weight:700;font-size:17px}
+.chip button{border:none;background:rgba(43,32,54,.1);width:24px;height:24px;border-radius:50%;cursor:pointer;font-size:13px;line-height:1}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.seg button{border:2px solid #e4d7ee;background:#fff;border-radius:14px;padding:12px 6px;cursor:pointer;text-align:center}
+.seg button b{display:block;font-size:14px}
+.seg button span{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:2px}
+.seg button[aria-pressed="true"]{border-color:var(--ink);background:color-mix(in srgb,var(--s2) 25%,#fff)}
+.rulepick{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+.rulepick button{flex:0 0 auto;border:2px solid #e4d7ee;background:#fff;border-radius:999px;padding:8px 12px;font-weight:800;font-size:13px;cursor:pointer}
+.rulepick button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.winbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.winbtns .btn{font-family:'Kalam',cursive;font-size:19px;padding:12px 8px}
+.stack>*+*{margin-top:12px}
+.toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);opacity:0;
+  background:var(--ink);color:#fff;padding:10px 16px;border-radius:999px;font-weight:700;font-size:14px;transition:.25s;z-index:40;pointer-events:none;max-width:90vw;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.announcer{font-family:'Kalam',cursive;font-size:16.5px;line-height:1.35;background:#fff;border-left:5px solid var(--s1);padding:10px 12px;border-radius:0 12px 12px 0;margin:0 0 16px;box-shadow:var(--shadow)}
+.announcer b{font-family:'Figtree',sans-serif;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);display:block}
+.foot{text-align:center;font-size:12px;color:var(--ink-soft);margin-top:20px}
+.foot a{color:inherit}
+dialog{border:none;border-radius:20px;padding:20px;max-width:360px;width:calc(100% - 32px);box-shadow:var(--shadow);color:var(--ink)}
+dialog::backdrop{background:rgba(43,32,54,.45)}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:50}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* ---------- v2 additions ---------- */
+.sec-title{font-family:'Bowlby One',Impact,sans-serif;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin:22px 4px 8px;display:flex;align-items:center;gap:8px}
+.sec-title::after{content:"";flex:1;height:2px;background:repeating-linear-gradient(90deg,#d9cbe3 0 6px,transparent 6px 10px)}
+.prize{display:inline-flex;align-items:center;gap:8px;margin-top:12px;background:var(--tape);padding:7px 14px;border-radius:10px;font-family:'Kalam',cursive;font-weight:700;font-size:17px;transform:rotate(-1.5deg);box-shadow:0 3px 0 rgba(43,32,54,.15)}
+.round.fin{justify-content:center}
+.round.cur .round-title{color:var(--ink)}
+.round.cur .round-title::before{content:"● ";color:#ff3b6b}
+.bm.bye .bm-row+.bm-row{display:none}
+.ink{display:grid;gap:8px}
+.ink-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px dashed var(--line)}
+.ink-row:first-child{border-top:none}
+.ink-n{font-weight:800;min-width:74px}
+.ink-dots{flex:1;font-size:18px;letter-spacing:2px;line-height:1}
+.ink-by{font-size:12px;color:var(--ink-soft)}
+.clean{font-family:'Kalam',cursive;color:var(--ink-soft)}
+.poster .ink-note{margin-top:10px;text-align:center;font-family:'Kalam',cursive;font-size:16px;background:rgba(43,32,54,.85);color:#fff;border-radius:12px;padding:8px 10px}
+.custom-rule{font-family:'Kalam',cursive;font-size:18px;line-height:1.3}
+.pool{display:flex;flex-wrap:wrap;gap:8px;min-height:40px}
+.pool .chip{cursor:pointer;border:2px solid transparent;padding:6px 14px}
+.pool .chip.sel{border-color:var(--ink);background:color-mix(in srgb,var(--s1) 35%,#fff)}
+.mlist{list-style:none;margin:0;padding:0}
+.mlist li{display:flex;align-items:center;gap:8px;padding:10px 0;border-top:1px dashed var(--line)}
+.mlist li:first-child{border-top:none}
+.mlist .q-main{flex:1;min-width:0}
+.ibtn{border:2px solid #e4d7ee;background:#fff;border-radius:10px;min-width:36px;height:36px;cursor:pointer;font-size:14px;font-weight:800;padding:0 8px}
+.ibtn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.rtabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.rtabs button{flex:0 0 auto;border:2px solid #e4d7ee;background:#fff;border-radius:999px;padding:8px 12px;font-weight:800;font-size:13px;cursor:pointer}
+.rtabs button[aria-pressed="true"]{border-color:var(--ink);background:color-mix(in srgb,var(--s2) 30%,#fff)}
+.rtabs button .lv{color:#ff3b6b}
+textarea{width:100%;min-height:110px;padding:12px 14px;border-radius:12px;border:2px solid #eee0f3;font:inherit;font-size:16px;resize:vertical;color:var(--ink)}
+textarea:focus{outline:none;border-color:var(--s1)}
+.hint{font-size:12.5px;color:var(--ink-soft);margin:6px 0 0;line-height:1.45}
+.tog{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#5c4d6b;margin-top:8px}
+.tog input{width:18px;height:18px}
+.done-banner{background:var(--tape);border:2px dashed var(--ink);border-radius:16px;padding:14px;text-align:center}
+.done-banner p{margin:0 0 10px;font-family:'Kalam',cursive;font-size:19px}
+</style>
+</head>
+<body data-skin="trans">
+<div class="bg-blobs" aria-hidden="true"></div>
+<canvas id="confetti" aria-hidden="true"></canvas>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="live-pill" id="livePill"><span class="live-dot"></span><span id="liveTxt">connecting…</span></span>
+    <div class="skins" role="group" aria-label="Color skin">
+      <button class="skin" data-s="trans" aria-label="Trans skin"></button>
+      <button class="skin" data-s="lesbian" aria-label="Lesbian skin"></button>
+      <button class="skin" data-s="bi" aria-label="Bi skin"></button>
+      <button class="skin" data-s="nb" aria-label="Nonbinary skin"></button>
+      <button class="skin" data-s="pride" aria-label="Pride skin"></button>
+    </div>
+  </div>
+
+  <div id="hostStrip"></div>
+
+  <header class="hero">
+    <span class="eyebrow">tap out anytime · loser gets inked</span>
+    <h1 class="title" id="title"></h1>
+    <p class="subline" id="subline"></p>
+    <div id="prizeWrap"></div>
+  </header>
+
+  <!-- LIVE: now on → up next → whole bracket -->
+  <section class="view on" id="v-live" aria-label="Live">
+    <div id="poster"></div>
+    <p class="announcer" id="announcer" hidden></p>
+    <div id="hostMatch"></div>
+
+    <div class="sec-title">Up next</div>
+    <div class="card"><div id="upNext"></div></div>
+
+    <div class="sec-title">The whole bracket</div>
+    <div class="card"><div id="board"></div></div>
+
+    <div class="sec-title">Ink board</div>
+    <div class="card"><div id="inkBoard"></div></div>
+  </section>
+
+  <!-- RULES -->
+  <section class="view" id="v-rules" aria-label="Rules">
+    <div class="card">
+      <h2>Three ways to win <small>pick one per match</small></h2>
+      <div class="rules" id="rulesList"></div>
+    </div>
+    <div class="card">
+      <h2>The ink rule 🖊️</h2>
+      <p style="margin:0;line-height:1.55;font-size:14.5px">The <b>loser</b> of every match gets marked by the <b>winner</b> with the temporary tattoo markers.
+      <b>The loser picks the spot, the winner picks the design.</b> A quick yes or no before the pen touches skin, and nothing goes anywhere the loser didn't pick.
+      Skin-safe markers only. If you've never used them, test a small patch first.</p>
+    </div>
+    <div class="card safety">
+      <h2>The non-negotiables</h2>
+      <ul>
+        <li><strong>Tap = over.</strong> Double-tap your opponent or the floor, or say "tap." The match ends right away and it counts as a loss.</li>
+        <li><strong>"RED" stops the whole room</strong>, not just your match.</li>
+        <li><strong>30-second check-in before every match:</strong> no-go zones, intensity 1–5, and the rule set.</li>
+        <li>Anyone can veto a rule set, no explanation needed. Anyone can drop out at any time.</li>
+        <li><strong>Banned:</strong> strikes, anything on the neck, twisting joints, pulling hair or fingers, slams.</li>
+        <li>Mats down, jewelry off, nails short, water nearby. The ref doesn't wrestle and can stop anything.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- REF / HOST -->
+  <section class="view" id="v-setup" aria-label="Ref controls"></section>
+
+  <p class="foot">made for a very good night · <a href="#" id="hostLink">ref login</a></p>
+</div>
+
+<nav class="tabs" role="tablist">
+  <div class="tabs-in" id="tabsIn">
+    <button class="tab" role="tab" data-v="live" aria-selected="true"><span class="ic">🔥</span>Live</button>
+    <button class="tab" role="tab" data-v="rules" aria-selected="false"><span class="ic">🧦</span>Rules</button>
+  </div>
+</nav>
+
+<dialog id="pinDlg">
+  <form method="dialog" class="stack">
+    <h2 style="font-family:'Bowlby One';font-weight:400;margin:0;text-transform:uppercase">Ref login</h2>
+    <p class="muted" style="margin:0">Only the ref's phone can change the bracket. Everyone else just watches.</p>
+    <label class="field" for="pinIn">Ref PIN</label>
+    <input type="password" id="pinIn" inputmode="numeric" autocomplete="off">
+    <div class="btn-row"><button class="btn" value="cancel">Cancel</button><button class="btn dark" value="ok">Unlock</button></div>
+  </form>
+</dialog>
+<div class="toast" id="toast" role="status"></div>
+<script>
+/* =========================================================
+   CONFIG — change these before you publish
+   ========================================================= */
+const ROOM = "sockhop-smackdown-CHANGE-ME-7f3k2";   // live channel name (letters, numbers, - and _ only)
+const HOST_PIN = "4242";                            // ref PIN that unlocks the controls
+const DEFAULT_PRIZE = "$10 Eat'n Park gift card";
+
+/* ---------------- the three rule sets ---------------- */
+const RULES = [
+  {id:"classic", n:"Classic", ic:"🤼", t:"3 min", sec:180,
+   w:"Pin your opponent's shoulders flat on the mat for a 3-count. A tap-out also wins."},
+  {id:"sock", n:"Sock Off", ic:"🧦", t:"2 min", sec:120,
+   w:"Both wear one or two socks (agree before you start). Pull off every sock your opponent has on first. Barefoot = beaten."},
+  {id:"custom", n:"Your Rules", ic:"✍️", t:"you decide", sec:120,
+   w:"The two wrestlers make up the rules together before the whistle, like no hands, knees only, or one arm behind your back. The ref writes them down so there's no arguing later."}
+];
+const R = id => RULES.find(r=>r.id===id);
+
+const QUIPS = [
+  "{w} takes it! {l}, pick your spot. The marker is uncapped.",
+  "{l} is about to become {w}'s canvas.",
+  "{w} said 'not today.' {l}, hold still for your souvenir.",
+  "ref confirms: {w} did that. {l} is getting a tattoo about it.",
+  "{l} tapped with grace. we love a communicator. now go get inked.",
+  "{w} is legally allowed to be smug for 10 minutes and draw on {l}."
+];
+
+/* ---------------- state ---------------- */
+const DEMO = new URLSearchParams(location.search).get("demo");
+let S = null, isHost = false, lastTs = 0;
+let skin = localStorage.getItem("shs_skin") || "trans";
+let undoStack = [];
+let ui = {editRound:0, sel:null, showAll:false};   // ref-only builder state (not shared)
+
+const uid = () => Math.random().toString(36).slice(2,8);
+const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const $ = s => document.querySelector(s);
+const nm = id => { const p=S&&S.players.find(p=>p.id===id); return p?p.n:"?"; };
+const fmtSec = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
+function toast(t){const el=$("#toast");el.textContent=t;el.classList.add("on");clearTimeout(toast._t);toast._t=setTimeout(()=>el.classList.remove("on"),2400);}
+
+function blank(){ return {v:2,title:"Sock Hop Smackdown",prize:DEFAULT_PRIZE,players:[],rounds:[{name:"Round 1",matches:[]}],cur:0,live:null,clock:null,quip:null,hist:[]}; }
+
+/* ---------------- bracket helpers ---------------- */
+const isBye = m => !!(m.a && !m.b);
+const loserOf = m => (!m.w||isBye(m)) ? null : (m.w===m.a?m.b:m.a);
+const allMatches = () => S.rounds.flatMap((r,ri)=>r.matches.map(m=>({...m,ri})));
+const findMatch = id => { for(const r of S.rounds){const m=r.matches.find(x=>x.id===id); if(m) return m;} return null; };
+const roundOf = id => S.rounds.findIndex(r=>r.matches.some(m=>m.id===id));
+function roundDone(ri){ const r=S.rounds[ri]; return r && r.matches.length>0 && r.matches.every(m=>m.w); }
+function winnersOf(ri){ return S.rounds[ri] ? S.rounds[ri].matches.filter(m=>m.w).map(m=>m.w) : []; }
+function placedIn(ri){ const s=new Set(); (S.rounds[ri]?.matches||[]).forEach(m=>{if(m.a)s.add(m.a); if(m.b)s.add(m.b);}); return s; }
+function eligible(ri){
+  // who can still be paired in round ri
+  if(ri===0 || ui.showAll) return S.players.map(p=>p.id);
+  return winnersOf(ri-1);
+}
+function pool(ri){ const placed=placedIn(ri); return eligible(ri).filter(id=>!placed.has(id)); }
+
+function currentMatch(){
+  if(!S) return null;
+  if(S.live){ const m=findMatch(S.live); if(m && !m.w) return m; }
+  const r=S.rounds[S.cur]; if(!r) return null;
+  return r.matches.find(m=>!m.w && m.a && m.b) || null;
+}
+function upNext(){
+  const cur=currentMatch(), out=[];
+  for(let ri=S.cur; ri<S.rounds.length; ri++){
+    S.rounds[ri].matches.forEach(m=>{ if(!m.w && m.a && m.b && (!cur||m.id!==cur.id)) out.push({m,ri}); });
+  }
+  return out;
+}
+function champion(){
+  if(!S) return null;
+  if(S.champ) return S.champ;
+  const last=S.rounds.length-1;
+  if(last<0 || !roundDone(last)) return null;
+  const w=winnersOf(last);
+  return (w.length===1 && S.rounds[last].matches.some(m=>!isBye(m))) ? w[0] : null;
+}
+function inkTally(){
+  const t={}; S.players.forEach(p=>t[p.id]={id:p.id,n:p.n,marks:[],wins:0});
+  allMatches().forEach(m=>{ const l=loserOf(m); if(l&&t[l]&&t[m.w]){ t[l].marks.push(m.w); t[m.w].wins++; } });
+  return Object.values(t).sort((a,b)=>b.marks.length-a.marks.length||b.wins-a.wins||a.n.localeCompare(b.n));
+}
+
+/* ---------------- mutations (ref only) ---------------- */
+function snap(){ undoStack.push(JSON.stringify(S)); if(undoStack.length>25) undoStack.shift(); }
+function undo(){ if(!undoStack.length){toast("Nothing to undo");return;} S=JSON.parse(undoStack.pop()); commit(); toast("Undone"); }
+
+function addNames(text){
+  // Accepts: one name per line, OR pairings like "Demi vs Bex" / "Demi, Bex" / tab-separated (from Sheets)
+  snap();
+  const lines=text.split(/\n/).map(l=>l.trim()).filter(Boolean);
+  let added=0, paired=0;
+  const getId=n=>{ n=n.trim().slice(0,22); if(!n) return null;
+    let p=S.players.find(p=>p.n.toLowerCase()===n.toLowerCase());
+    if(!p){ if(S.players.length>=32) return null; p={id:uid(),n}; S.players.push(p); added++; } return p.id; };
+  const r0=S.rounds[0];
+  lines.forEach(l=>{
+    if(/^(name|names|wrestler|wrestler 1|player)\b/i.test(l)) return;   // header row from a sheet
+    const parts=l.split(/\s+vs\.?\s+|\s+v\.?\s+|\t|,/i).map(s=>s.trim()).filter(Boolean);
+    if(parts.length>=2){
+      const a=getId(parts[0]), b=getId(parts[1]);
+      if(a&&b&&a!==b&&!placedIn(0).has(a)&&!placedIn(0).has(b)){ r0.matches.push({id:uid(),a,b,rule:null,custom:"",w:null}); paired++; }
+    } else getId(parts[0]||l);
+  });
+  commit();
+  toast(`${added} added${paired?` · ${paired} matchups made`:""}`);
+}
+function removePlayer(id){
+  const used=allMatches().some(m=>m.a===id||m.b===id);
+  if(used && !confirm(`${nm(id)} is already in a matchup. Remove them from the bracket too?`)) return;
+  snap();
+  S.rounds.forEach(r=>{ r.matches=r.matches.filter(m=>m.a!==id&&m.b!==id); });
+  S.players=S.players.filter(p=>p.id!==id); commit();
+}
+function pair(ri,a,b){ snap(); S.rounds[ri].matches.push({id:uid(),a,b:b||null,rule:null,custom:"",w:b?null:a}); commit(); }
+function unpair(ri,mid){
+  const m=S.rounds[ri].matches.find(x=>x.id===mid);
+  if(m.w && !isBye(m) && !confirm("This match already has a winner. Delete it anyway?")) return;
+  snap(); S.rounds[ri].matches=S.rounds[ri].matches.filter(x=>x.id!==mid); if(S.live===mid) S.live=null; commit();
+}
+function moveMatch(ri,mid,dir){
+  const ms=S.rounds[ri].matches, i=ms.findIndex(x=>x.id===mid), j=i+dir;
+  if(j<0||j>=ms.length) return; snap(); [ms[i],ms[j]]=[ms[j],ms[i]]; commit();
+}
+function pairRestInOrder(ri){
+  const p=pool(ri); if(!p.length) return; snap();
+  for(let i=0;i<p.length;i+=2) S.rounds[ri].matches.push({id:uid(),a:p[i],b:p[i+1]||null,rule:null,custom:"",w:p[i+1]?null:p[i]});
+  commit();
+}
+function newRound(){
+  snap(); const n=S.rounds.length+1;
+  const left=winnersOf(S.rounds.length-1).length;
+  S.rounds.push({name: left===2?"The Final": left<=4&&left>2?"Semifinals":`Round ${n}`, matches:[]});
+  ui.editRound=S.rounds.length-1; ui.sel=null; commit();
+}
+function deleteRound(ri){
+  if(ri===0){toast("Round 1 stays — clear its matchups instead");return;}
+  if(!confirm(`Delete ${S.rounds[ri].name} and everything in it?`)) return;
+  snap(); S.rounds.splice(ri,1); if(S.cur>=S.rounds.length) S.cur=S.rounds.length-1;
+  ui.editRound=Math.min(ui.editRound,S.rounds.length-1); commit();
+}
+function setCurrentRound(ri){ snap(); S.cur=ri; S.live=null; S.clock=null; commit(); toast(`Now running: ${S.rounds[ri].name}`); }
+function setRule(mid,rule){ const m=findMatch(mid); if(!m) return; snap(); m.rule=rule; commit(); }
+function setCustom(mid,txt){ const m=findMatch(mid); if(!m) return; m.custom=txt.slice(0,140); commitQuiet(); }
+function recordWin(winner){
+  const m=currentMatch(); if(!m) return; snap();
+  m.w=winner; const l=loserOf(m);
+  S.hist.unshift({a:m.a,b:m.b,w:winner,r:m.rule,rn:S.rounds[roundOf(m.id)].name}); S.hist=S.hist.slice(0,6);
+  S.live=null; S.clock=null;
+  S.quip=QUIPS[Math.floor(Math.random()*QUIPS.length)].replaceAll("{w}",nm(winner)).replaceAll("{l}",nm(l));
+  S.lastInk={w:winner,l};
+  commit(); confetti();
+  if(champion()) setTimeout(()=>confetti(260),500);
+}
+function reopen(mid){ const m=findMatch(mid); if(!m||isBye(m)) return; snap(); m.w=null; S.champ=null; commit(); toast("Result cleared"); }
+
+/* ---------------- sync via ntfy.sh ---------------- */
+const BASE="https://ntfy.sh/"+encodeURIComponent(ROOM);
+let pubTimer=null;
+function commitQuiet(){ S.ts=Date.now(); if(DEMO){lastTs=S.ts;return;} localStorage.setItem("shs2_"+ROOM,JSON.stringify(S)); lastTs=S.ts; clearTimeout(pubTimer); pubTimer=setTimeout(publish,900); }
+function commit(){ commitQuiet(); render(); }
+async function publish(){
+  if(!isHost||!S||DEMO) return;
+  try{ const r=await fetch(BASE,{method:"POST",body:JSON.stringify(S)}); if(!r.ok) throw 0; setLive(true,"live · you're the ref"); }
+  catch(e){ setLive(false,"offline — retrying"); setTimeout(publish,4000); }
+}
+async function ingest(msg){
+  if(DEMO) return;
+  try{
+    let txt=msg.message;
+    if(msg.attachment&&msg.attachment.url) txt=await (await fetch(msg.attachment.url)).text();
+    const st=JSON.parse(txt); if(!st||st.v!==2||!st.ts||st.ts<=lastTs) return;
+    const prev=S&&S.hist&&S.hist[0]?JSON.stringify(S.hist[0]):null;
+    lastTs=st.ts; S=st.cleared?null:st;
+    if(!isHost){ if(S) localStorage.setItem("shs2_"+ROOM,JSON.stringify(S)); else localStorage.removeItem("shs2_"+ROOM); }
+    render();
+    if(S&&S.hist&&S.hist[0]&&prev!==null&&JSON.stringify(S.hist[0])!==prev) confetti();
+  }catch(e){}
+}
+async function pollLatest(){
+  try{ const t=await (await fetch(BASE+"/json?poll=1&since=latest")).text();
+    for(const l of t.trim().split("\n").filter(Boolean)){ const m=JSON.parse(l); if(m.event==="message") await ingest(m); } return true;
+  }catch(e){ return false; }
+}
+function subscribe(){
+  try{ const es=new EventSource(BASE+"/sse");
+    es.onopen=()=>setLive(true,isHost?"live · you're the ref":"live");
+    es.onmessage=e=>{const m=JSON.parse(e.data); if(m.event==="message") ingest(m);};
+    es.onerror=()=>setLive(false,"reconnecting…");
+  }catch(e){ setInterval(pollLatest,8000); }
+}
+function setLive(on,txt){$("#livePill").classList.toggle("on",on);$("#liveTxt").textContent=txt;}
+setInterval(()=>{ if(isHost&&S) publish(); }, 20*60*1000);   // keep state fresh for latecomers
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden&&!DEMO) pollLatest(); });
+
+/* ---------------- Google Sheet import ---------------- */
+async function importSheet(url){
+  const id=(url.match(/\/d\/([a-zA-Z0-9-_]+)/)||[])[1]; const gid=(url.match(/[#&?]gid=(\d+)/)||[])[1];
+  if(!id){ toast("That doesn't look like a Google Sheets link"); return; }
+  const csvUrl=`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv${gid?`&gid=${gid}`:""}`;
+  try{
+    const txt=await (await fetch(csvUrl)).text();
+    if(/<html/i.test(txt)) throw 0;
+    const rows=txt.split(/\r?\n/).map(r=>(r.match(/("([^"]|"")*"|[^,]*)(,|$)/g)||[]).map(c=>c.replace(/,$/,"").replace(/^"|"$/g,"").replace(/""/g,'"').trim()).filter(Boolean)).filter(r=>r.length);
+    const lines=rows.map(r=>r.length>=2?`${r[0]} vs ${r[1]}`:r[0]).join("\n");
+    localStorage.setItem("shs_sheet",url); addNames(lines);
+  }catch(e){ toast("Couldn't read the sheet. Set sharing to 'Anyone with the link can view'."); }
+}
+
+/* ---------------- render ---------------- */
+function render(){
+  document.body.dataset.skin=skin;
+  document.querySelectorAll(".skin").forEach(b=>b.setAttribute("aria-pressed",b.dataset.s===skin));
+  renderHostStrip(); renderRules();
+  if(!S || (!S.players.length && !isHost)){
+    $("#title").innerHTML=`<span class="t-a">Sock Hop</span><br>Smackdown`;
+    $("#subline").textContent="Waiting for the ref to open the ring…";
+    $("#prizeWrap").innerHTML=`<span class="prize">🏆 ${esc(S?S.prize:DEFAULT_PRIZE)}</span>`;
+    $("#poster").innerHTML=`<div class="poster empty"><span class="poster-label">tonight</span><div class="fighters"><div class="poster-empty">the ref is lacing up.<br>this page updates by itself.</div></div></div>`;
+    $("#upNext").innerHTML=`<p class="muted" style="margin:0">No matchups yet. Hydrate. Trim a nail.</p>`;
+    $("#board").innerHTML=`<p class="muted" style="margin:0">The bracket shows up here as soon as the ref pairs people.</p>`;
+    $("#inkBoard").innerHTML=`<p class="clean" style="margin:0">everyone's still spotless… for now.</p>`;
+    $("#announcer").hidden=true; $("#hostMatch").innerHTML=""; renderSetup(); return;
+  }
+  const w=S.title.trim().split(/\s+/), h=Math.ceil(w.length/2);
+  $("#title").innerHTML=`<span class="t-a">${esc(w.slice(0,h).join(" "))}</span>${w.length>1?"<br>"+esc(w.slice(h).join(" ")):""}`;
+  const r=S.rounds[S.cur];
+  $("#subline").textContent=`${S.players.length} wrestlers · now running: ${r?r.name:"—"}`;
+  $("#prizeWrap").innerHTML=S.prize?`<span class="prize">🏆 winner gets: ${esc(S.prize)}</span>`:"";
+  const an=$("#announcer"); if(S.quip){an.hidden=false;an.innerHTML=`<b>ringside announcer</b>${esc(S.quip)}`;} else an.hidden=true;
+  renderPoster(); renderUpNext(); renderBoard(); renderInk(); renderHostMatch(); renderSetup();
+}
+
+function ruleBlock(m){
+  const r=R(m.rule);
+  if(!r) return `<div class="rb-kicker">rules</div><div class="rb-name">being picked…</div><div class="rb-win">classic · sock off · or their own</div>`;
+  if(r.id==="custom") return `<div class="rb-kicker">${r.ic} their own rules</div><div class="rb-name">Your Rules</div><div class="rb-win custom-rule">${m.custom?esc(m.custom):"the two of them are negotiating… 🤝"}</div>`;
+  return `<div class="rb-kicker">${r.ic} rules chosen · ${esc(r.t)}</div><div class="rb-name">${esc(r.n)}</div><div class="rb-win">${esc(r.w)}</div>`;
+}
+function renderPoster(){
+  const ch=champion(), cur=currentMatch();
+  if(ch){
+    $("#poster").innerHTML=`<div class="poster"><span class="poster-label">undisputed champion</span><div class="champ"><div class="crown">👑</div><div class="f-name">${esc(nm(ch))}</div>
+      <p class="hand" style="margin:12px 0 0">takes home the ${esc(S.prize||"glory")}. bow. or at least clap.</p></div></div>`; return;
+  }
+  if(!cur){
+    const r=S.rounds[S.cur]; let msg="waiting on the next matchup";
+    if(r && roundDone(S.cur)) msg=`${esc(r.name)} is done!<br>the ref is setting up the next round.`;
+    else if(r && !r.matches.length) msg=`the ref is pairing up ${esc(r.name)}…`;
+    $("#poster").innerHTML=`<div class="poster empty"><span class="poster-label">intermission</span><div class="fighters"><div class="poster-empty">${msg}</div></div></div>`; return;
+  }
+  const rn=S.rounds[roundOf(cur.id)].name;
+  $("#poster").innerHTML=`<div class="poster" aria-live="polite">
+    <span class="poster-label">on the mat now · ${esc(rn)}</span>
+    <div class="fighters">
+      <div class="fighter"><div class="f-name">${esc(nm(cur.a))}</div></div>
+      <div class="vs">VS</div>
+      <div class="fighter"><div class="f-name">${esc(nm(cur.b))}</div></div>
+    </div>
+    <div class="rule-banner">${ruleBlock(cur)}</div>
+    <div class="clock" id="clock" ${S.clock?"":"hidden"}></div>
+    <div class="ink-note">🖊️ loser gets marked by the winner</div>
+  </div>`;
+  tickClock();
+}
+function tickClock(){
+  const el=$("#clock"); if(!el||!S||!S.clock) return;
+  const left=Math.max(0,Math.round((S.clock-Date.now())/1000));
+  el.textContent=left===0?"TIME!":fmtSec(left); el.classList.toggle("low",left>0&&left<=10);
+}
+setInterval(tickClock,250);
+
+function renderUpNext(){
+  const list=upNext();
+  if(!list.length){
+    const ch=champion();
+    $("#upNext").innerHTML=`<p class="muted" style="margin:0">${ch?"That's the whole card. Towels, water, compare tattoos.":currentMatch()?"This is the last matchup set so far. The ref sets up the next round after it.":"Nothing queued yet."}</p>`; return;
+  }
+  $("#upNext").innerHTML=`<ol class="queue">${list.slice(0,6).map(({m,ri},i)=>{const r=R(m.rule);
+    return `<li><span class="q-num">${i+1}</span><div class="q-main"><div class="q-names">${esc(nm(m.a))} vs ${esc(nm(m.b))}</div>
+    <div class="q-meta">${esc(S.rounds[ri].name)}${r?` · ${r.ic} ${esc(r.n)}`:" · rules TBD"}${i===0?" · get ready!":""}</div></div></li>`;}).join("")}</ol>
+    ${list.length>6?`<p class="muted" style="margin:8px 0 0">+ ${list.length-6} more</p>`:""}`;
+}
+
+function renderBoard(){
+  const cur=currentMatch(), ch=champion();
+  let html=`<div class="bracket-scroll"><div class="bracket">`;
+  S.rounds.forEach((r,ri)=>{
+    html+=`<div class="round ${ri===S.cur&&!ch?"cur":""}"><div class="round-title">${esc(r.name)}</div>`;
+    if(!r.matches.length) html+=`<div class="bm"><div class="bm-row"><span class="tbd">pairings coming…</span></div></div>`;
+    r.matches.forEach(m=>{
+      const row=id=>{ const cls=m.w&&!isBye(m)?(m.w===id?"w":"l"):""; return `<div class="bm-row ${cls}">${esc(nm(id))}${m.w===id&&!isBye(m)?"<span>✓</span>":""}</div>`; };
+      const rr=R(m.rule);
+      html+= isBye(m) ? `<div class="bm bye"><div class="bm-row w">${esc(nm(m.a))}</div><div class="bm-rule">bye · moves on</div></div>`
+        : `<div class="bm ${cur&&cur.id===m.id?"live":""}">${row(m.a)}${row(m.b)}<div class="bm-rule">${cur&&cur.id===m.id?"🔥 on now · ":""}${rr?rr.ic+" "+esc(rr.n):"rules tbd"}</div></div>`;
+    });
+    html+=`</div>`;
+  });
+  const lastDone=roundDone(S.rounds.length-1);
+  if(!ch && lastDone) html+=`<div class="round fin"><div class="round-title">Next round</div><div class="bm"><div class="bm-row"><span class="tbd">${winnersOf(S.rounds.length-1).map(id=>esc(nm(id))).join(", ")} advance</span></div></div></div>`;
+  html+=`<div class="round fin"><div class="round-title">Champion</div><div class="bm"><div class="bm-row ${ch?"w":""}">${ch?"👑 "+esc(nm(ch)):'<span class="tbd">TBD</span>'}</div></div></div>`;
+  html+=`</div></div>${S.rounds.length>1||S.rounds[0].matches.length>2?`<p class="muted" style="margin:10px 0 0">swipe sideways for later rounds →</p>`:""}`;
+  $("#board").innerHTML=html;
+}
+function renderInk(){
+  const t=inkTally().filter(p=>p.marks.length);
+  const clean=S.players.length-t.length;
+  if(!t.length){ $("#inkBoard").innerHTML=`<p class="clean" style="margin:0">everyone's still spotless… for now.</p>`; return; }
+  $("#inkBoard").innerHTML=`<div class="ink">${t.map(p=>`<div class="ink-row"><span class="ink-n">${esc(p.n)}</span><span class="ink-dots">${"🖊️".repeat(p.marks.length)}</span><span class="ink-by">from ${p.marks.map(id=>esc(nm(id))).join(", ")}</span></div>`).join("")}</div>
+  ${clean?`<p class="clean" style="margin:10px 0 0">${clean} still spotless</p>`:""}`;
+}
+function renderRules(){
+  $("#rulesList").innerHTML=RULES.map((r,i)=>`<div class="rule"><div class="rule-head"><span class="rule-name">${i+1}. ${r.ic} ${esc(r.n)}</span><span class="rule-time">${esc(r.t)}</span></div><p>${esc(r.w)}</p></div>`).join("");
+}
+
+/* ---------------- ref: live match controls ---------------- */
+function renderHostStrip(){
+  const el=$("#hostStrip");
+  if(!isHost){el.innerHTML="";$("#hostLink").textContent="ref login";return;}
+  $("#hostLink").textContent="exit ref mode";
+  el.innerHTML=`<div class="host-strip"><span>🦓 ref mode${DEMO?" (demo — nothing goes live)":" — your taps go live"}</span><button class="btn sm dark" id="toSetup">Bracket builder</button></div>`;
+  $("#toSetup").onclick=()=>showView("setup");
+}
+function roundSelect(id){
+  return `<select id="${id}">${S.rounds.map((r,i)=>`<option value="${i}" ${i===S.cur?"selected":""}>${esc(r.name)}${roundDone(i)?" ✓ done":""}</option>`).join("")}</select>`;
+}
+function renderHostMatch(){
+  const el=$("#hostMatch");
+  if(!isHost||!S||!S.players.length){el.innerHTML="";return;}
+  const cur=currentMatch(), r=S.rounds[S.cur];
+  const undoB=undoStack.length?`<button class="btn danger sm" id="undoBtn">↶ Undo last change</button>`:"";
+  let body="";
+  if(champion()){
+    body=`<p class="muted" style="margin:0">We have a champion. Tap "Undo" to take back the last result if it was a mistake.</p>`;
+  } else if(!cur){
+    if(r && roundDone(S.cur)){
+      const ws=winnersOf(S.cur);
+      body=`<div class="done-banner"><p>${esc(r.name)} is done. ${ws.length} moving on: ${ws.map(id=>esc(nm(id))).join(", ")}</p>
+        ${S.cur<S.rounds.length-1?`<button class="btn primary" id="goNext">Start ${esc(S.rounds[S.cur+1].name)} →</button>`:`<button class="btn primary" id="buildNext">Build the next round →</button>`}</div>`;
+    } else body=`<p class="muted" style="margin:0">No matchups in ${esc(r?r.name:"this round")} yet.</p><button class="btn primary" id="toBuild" style="width:100%;margin-top:10px">Pair people up →</button>`;
+  } else {
+    const others=S.rounds[S.cur].matches.filter(m=>!m.w&&m.a&&m.b&&m.id!==cur.id);
+    body=`<div><span class="field">1 · Pick the rules</span>
+      <div class="rulepick">${RULES.map(x=>`<button data-r="${x.id}" aria-pressed="${cur.rule===x.id}">${x.ic} ${esc(x.n)}</button>`).join("")}</div>
+      ${cur.rule==="custom"?`<input type="text" id="customIn" style="margin-top:8px" maxlength="140" placeholder="what did they agree on? e.g. no hands, knees only" value="${esc(cur.custom)}"><p class="hint">Everyone sees this on their phone as you type.</p>`:""}</div>
+    <div><span class="field">2 · Clock (everyone sees it)</span>
+      <div class="btn-row"><button class="btn sm" data-c="${(R(cur.rule)||{sec:120}).sec}">Start ${fmtSec((R(cur.rule)||{sec:120}).sec)}</button><button class="btn sm" data-c="60">1:00</button><button class="btn sm" data-c="0">Stop</button></div></div>
+    <div><span class="field">3 · Who won? (the loser gets inked)</span>
+      <div class="winbtns"><button class="btn primary" data-w="${cur.a}">${esc(nm(cur.a))}</button><button class="btn primary" data-w="${cur.b}">${esc(nm(cur.b))}</button></div></div>
+    ${others.length?`<div><label class="field" for="swap">Run a different match first</label><select id="swap"><option value="">— keep ${esc(nm(cur.a))} vs ${esc(nm(cur.b))} —</option>${others.map(m=>`<option value="${m.id}">${esc(nm(m.a))} vs ${esc(nm(m.b))}</option>`).join("")}</select></div>`:""}`;
+  }
+  el.innerHTML=`<div class="card stack">
+    <h2 style="margin:0">Ref controls</h2>
+    <div><label class="field" for="curRound">Round running right now</label>${roundSelect("curRound")}</div>
+    ${body}${undoB}</div>`;
+  el.querySelector("#curRound").onchange=e=>setCurrentRound(+e.target.value);
+  el.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>setRule(cur.id,b.dataset.r));
+  const ci=el.querySelector("#customIn"); if(ci) ci.oninput=()=>{ setCustom(cur.id,ci.value); const rb=document.querySelector(".rule-banner .custom-rule"); if(rb) rb.textContent=ci.value||"the two of them are negotiating… 🤝"; };
+  el.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{const s=+b.dataset.c; S.clock=s?Date.now()+s*1000:null; commit();});
+  el.querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{ if(confirm(`${nm(b.dataset.w)} wins?`)) recordWin(b.dataset.w); });
+  const sw=el.querySelector("#swap"); if(sw) sw.onchange=()=>{ if(sw.value){ S.live=sw.value; S.clock=null; commit(); } };
+  const gn=el.querySelector("#goNext"); if(gn) gn.onclick=()=>setCurrentRound(S.cur+1);
+  const bn=el.querySelector("#buildNext"); if(bn) bn.onclick=()=>{ newRound(); showView("setup"); };
+  const tb=el.querySelector("#toBuild"); if(tb) tb.onclick=()=>{ ui.editRound=S.cur; showView("setup"); };
+  const u=el.querySelector("#undoBtn"); if(u) u.onclick=undo;
+}
+
+/* ---------------- ref: bracket builder ---------------- */
+function renderSetup(){
+  const el=$("#v-setup");
+  if(!isHost||!S){el.innerHTML="";return;}
+  if(ui.editRound>=S.rounds.length) ui.editRound=S.rounds.length-1;
+  const ri=ui.editRound, rd=S.rounds[ri], p=pool(ri);
+  const sheet=localStorage.getItem("shs_sheet")||"";
+  el.innerHTML=`
+  <div class="card stack">
+    <h2 style="margin:0">1 · Event</h2>
+    <div><label class="field" for="evName">Event name</label><input type="text" id="evName" value="${esc(S.title)}" maxlength="40"></div>
+    <div><label class="field" for="evPrize">Prize</label><input type="text" id="evPrize" value="${esc(S.prize)}" maxlength="60"></div>
+  </div>
+
+  <div class="card stack">
+    <h2 style="margin:0">2 · Wrestlers <small>${S.players.length} signed up</small></h2>
+    <div><label class="field" for="bulk">Paste names, one per line</label>
+      <textarea id="bulk" placeholder="Demi&#10;Bex&#10;Juno vs Rory&#10;Sal, Kit"></textarea>
+      <p class="hint">Shortcut: type <b>Juno vs Rory</b> (or <b>Juno, Rory</b>) on one line and they're paired for Round 1 automatically.</p>
+      <button class="btn dark" id="bulkAdd" style="width:100%;margin-top:8px">Add to roster</button></div>
+    <details><summary class="field" style="cursor:pointer">…or pull names from a Google Sheet</summary>
+      <p class="hint">Put the names in column A. If you want to pair people yourself, put their opponent in column B. Then go to <b>Share → Anyone with the link → Viewer</b> and paste the link here.</p>
+      <div class="addrow" style="margin-top:8px"><input type="text" id="sheetUrl" placeholder="https://docs.google.com/spreadsheets/d/…" value="${esc(sheet)}"><button class="btn dark" id="sheetGo">Import</button></div>
+    </details>
+    <div class="roster">${S.players.map(pl=>`<span class="chip">${esc(pl.n)}<button aria-label="Remove ${esc(pl.n)}" data-x="${pl.id}">✕</button></span>`).join("")||'<span class="muted">No one yet.</span>'}</div>
+  </div>
+
+  <div class="card stack">
+    <h2 style="margin:0">3 · Matchups</h2>
+    <div class="rtabs">${S.rounds.map((r,i)=>`<button data-er="${i}" aria-pressed="${i===ri}">${i===S.cur?'<span class="lv">● </span>':""}${esc(r.name)}${roundDone(i)?" ✓":""}</button>`).join("")}<button id="addRound">+ Round</button></div>
+    <div class="addrow"><input type="text" id="rName" value="${esc(rd.name)}" maxlength="24" aria-label="Round name"><button class="btn sm" id="rDel" ${ri===0?"disabled":""}>Delete</button></div>
+
+    <div><span class="field">${ri===0?"Unpaired":"Moving on & unpaired"} (${p.length}) — tap two names to pair them</span>
+      <div class="pool">${p.map(id=>`<span class="chip ${ui.sel===id?"sel":""}" data-p="${id}" role="button" tabindex="0">${esc(nm(id))}</span>`).join("")||`<span class="muted">${ri>0&&!roundDone(ri-1)?`Finish ${esc(S.rounds[ri-1].name)} first, or show everyone below.`:"Everyone's paired ✓"}</span>`}</div>
+      <div class="btn-row" style="margin-top:8px">
+        ${ui.sel?`<button class="btn sm" id="giveBye">Give ${esc(nm(ui.sel))} a bye</button>`:""}
+        ${p.length>1?`<button class="btn sm" id="pairRest">Pair the rest in order</button>`:""}
+      </div>
+      ${ri>0?`<label class="tog"><input type="checkbox" id="showAll" ${ui.showAll?"checked":""}> Show everyone, not just winners (rematches or a losers' round)</label>`:""}
+    </div>
+
+    <div><span class="field">Match order (the top one goes first)</span>
+      <ul class="mlist">${rd.matches.map((m,i)=>{
+        if(isBye(m)) return `<li><div class="q-main"><div class="q-names">${esc(nm(m.a))}</div><div class="q-meta">bye · moves on</div></div><button class="ibtn" data-up="${m.id}" aria-label="Move up">↑</button><button class="ibtn" data-dn="${m.id}" aria-label="Move down">↓</button><button class="ibtn" data-del="${m.id}" aria-label="Remove">✕</button></li>`;
+        return `<li><div class="q-main"><div class="q-names">${esc(nm(m.a))} vs ${esc(nm(m.b))}</div>
+          <div class="q-meta">${m.w?`✓ ${esc(nm(m.w))} won · <a href="#" data-re="${m.id}">clear result</a>`:"not wrestled yet"}</div>
+          <div style="display:flex;gap:6px;margin-top:6px">${RULES.map(x=>`<button class="ibtn ${m.rule===x.id?"on":""}" data-mr="${m.id}|${x.id}" title="${esc(x.n)}">${x.ic}</button>`).join("")}</div></div>
+          <button class="ibtn" data-up="${m.id}" aria-label="Move up">↑</button><button class="ibtn" data-dn="${m.id}" aria-label="Move down">↓</button><button class="ibtn" data-del="${m.id}" aria-label="Remove">✕</button></li>`;}).join("")||'<li class="muted">No matchups yet.</li>'}</ul>
+      <p class="hint">Setting the rules here is optional. You can also pick them at the mat when the challenger decides.</p></div>
+
+    ${ri!==S.cur?`<button class="btn primary" id="makeCur">Make ${esc(rd.name)} the round running now</button>`:`<button class="btn primary" id="goLive">Go to the live match →</button>`}
+  </div>
+
+  <div class="card stack">
+    <h2 style="margin:0">4 · Share & reset</h2>
+    <button class="btn" id="copyLink">📋 Copy the link for everyone</button>
+    <button class="btn" id="republish">📡 Re-send to everyone's phone</button>
+    ${undoStack.length?`<button class="btn" id="undo2">↶ Undo last change</button>`:""}
+    <button class="btn danger" id="wipe">Wipe everything & start over</button>
+  </div>`;
+
+  const q=s=>el.querySelector(s);
+  q("#evName").onchange=e=>{snap();S.title=e.target.value.trim()||"Sock Hop Smackdown";commit();};
+  q("#evPrize").onchange=e=>{snap();S.prize=e.target.value.trim();commit();};
+  q("#bulkAdd").onclick=()=>{const v=q("#bulk").value; if(v.trim()) addNames(v);};
+  q("#sheetGo").onclick=()=>{const v=q("#sheetUrl").value.trim(); if(v) importSheet(v);};
+  el.querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>removePlayer(b.dataset.x));
+  el.querySelectorAll("[data-er]").forEach(b=>b.onclick=()=>{ui.editRound=+b.dataset.er;ui.sel=null;renderSetup();});
+  q("#addRound").onclick=newRound;
+  q("#rName").onchange=e=>{snap();rd.name=e.target.value.trim()||`Round ${ri+1}`;commit();};
+  q("#rDel").onclick=()=>deleteRound(ri);
+  el.querySelectorAll("[data-p]").forEach(c=>{ const go=()=>{ const id=c.dataset.p;
+      if(!ui.sel){ui.sel=id;renderSetup();return;} if(ui.sel===id){ui.sel=null;renderSetup();return;}
+      const a=ui.sel; ui.sel=null; pair(ri,a,id); toast(`${nm(a)} vs ${nm(id)} ✓`); };
+    c.onclick=go; c.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go();}}; });
+  const gb=q("#giveBye"); if(gb) gb.onclick=()=>{const a=ui.sel; ui.sel=null; pair(ri,a,null);};
+  const pr=q("#pairRest"); if(pr) pr.onclick=()=>pairRestInOrder(ri);
+  const sa=q("#showAll"); if(sa) sa.onchange=()=>{ui.showAll=sa.checked;renderSetup();};
+  el.querySelectorAll("[data-up]").forEach(b=>b.onclick=()=>moveMatch(ri,b.dataset.up,-1));
+  el.querySelectorAll("[data-dn]").forEach(b=>b.onclick=()=>moveMatch(ri,b.dataset.dn,1));
+  el.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>unpair(ri,b.dataset.del));
+  el.querySelectorAll("[data-mr]").forEach(b=>b.onclick=()=>{const [mid,r]=b.dataset.mr.split("|"); const m=findMatch(mid); setRule(mid,m.rule===r?null:r);});
+  el.querySelectorAll("[data-re]").forEach(a=>a.onclick=e=>{e.preventDefault();reopen(a.dataset.re);});
+  const mc=q("#makeCur"); if(mc) mc.onclick=()=>setCurrentRound(ri);
+  const gl=q("#goLive"); if(gl) gl.onclick=()=>showView("live");
+  q("#copyLink").onclick=async()=>{const url=location.origin+location.pathname; try{await navigator.clipboard.writeText(url);toast("Link copied");}catch(e){prompt("Copy this link:",url);}};
+  q("#republish").onclick=()=>{publish();toast("Sent to everyone");};
+  const u2=q("#undo2"); if(u2) u2.onclick=undo;
+  q("#wipe").onclick=()=>{ if(!confirm("Wipe the roster, the bracket, and the ink board for everyone?")) return;
+    snap(); const keep={title:S.title,prize:S.prize}; S=Object.assign(blank(),keep); ui={editRound:0,sel:null,showAll:false}; commit(); toast("Fresh start"); };
+}
+
+/* ---------------- nav + login ---------------- */
+function showView(v){
+  document.querySelectorAll(".view").forEach(x=>x.classList.toggle("on",x.id==="v-"+v));
+  document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected",t.dataset.v===v));
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>showView(t.dataset.v));
+document.querySelectorAll(".skin").forEach(b=>b.onclick=()=>{skin=b.dataset.s;localStorage.setItem("shs_skin",skin);render();});
+function enterHost(){
+  isHost=true; if(!DEMO) sessionStorage.setItem("shs_host","1");
+  if(!S) S=blank();
+  if(!document.querySelector('.tab[data-v="setup"]')){
+    const t=document.createElement("button"); t.className="tab"; t.dataset.v="setup"; t.setAttribute("role","tab"); t.setAttribute("aria-selected","false");
+    t.innerHTML=`<span class="ic">🦓</span>Builder`; t.onclick=()=>showView("setup"); $("#tabsIn").appendChild(t);
+  }
+  if(!DEMO) setLive(true,"live · you're the ref"); render();
+}
+$("#hostLink").onclick=e=>{e.preventDefault();
+  if(isHost){ isHost=false; sessionStorage.removeItem("shs_host"); const t=document.querySelector('.tab[data-v="setup"]'); if(t) t.remove(); showView("live"); render(); return; }
+  $("#pinIn").value=""; $("#pinDlg").showModal(); };
+$("#pinDlg").addEventListener("close",()=>{ if($("#pinDlg").returnValue==="ok"){ if($("#pinIn").value===HOST_PIN){ enterHost(); toast("Ref mode on 🦓"); if(!S.players.length) showView("setup"); } else toast("Wrong PIN"); }});
+
+/* ---------------- confetti (with socks) ---------------- */
+function confetti(n=140){
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const c=$("#confetti"),x=c.getContext("2d"); c.width=innerWidth; c.height=innerHeight;
+  const cs=getComputedStyle(document.body), cols=[cs.getPropertyValue("--s1"),cs.getPropertyValue("--s2"),"#fff4b8","#2b2036","#ffffff"];
+  const P=Array.from({length:n},()=>({x:Math.random()*c.width,y:-20-Math.random()*c.height*.4,vx:(Math.random()-.5)*3,vy:2+Math.random()*3,r:Math.random()*6.28,vr:(Math.random()-.5)*.3,w:6+Math.random()*6,h:8+Math.random()*8,col:cols[Math.floor(Math.random()*cols.length)],e:Math.random()<.14?(Math.random()<.5?"🧦":"🖊️"):null}));
+  let f=0;(function step(){x.clearRect(0,0,c.width,c.height);f++;
+    P.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.04;p.r+=p.vr;x.save();x.translate(p.x,p.y);x.rotate(p.r);
+      if(p.e){x.font="20px serif";x.fillText(p.e,-10,10);}else{x.fillStyle=p.col;x.fillRect(-p.w/2,-p.h/2,p.w,p.h);}x.restore();});
+    if(f<200) requestAnimationFrame(step); else x.clearRect(0,0,c.width,c.height);})();
+}
+
+/* ---------------- demo data (?demo or ?demo=ref) ---------------- */
+function loadDemo(){
+  S=blank();
+  const names=["Demi","Bex","Juno","Rory","Sal","Kit","Mo"];
+  S.players=names.map(n=>({id:uid(),n})); const id=n=>S.players.find(p=>p.n===n).id;
+  const mk=(a,b,rule,w,custom="")=>({id:uid(),a:id(a),b:b?id(b):null,rule,custom,w:w?id(w):(b?null:id(a))});
+  S.rounds=[{name:"Round 1",matches:[mk("Demi","Bex","sock","Demi"),mk("Juno","Rory","classic","Rory"),mk("Sal","Kit","custom",null,"knees only, no hands above the waist"),mk("Mo",null,null)]}];
+  S.hist=[{a:id("Juno"),b:id("Rory"),w:id("Rory"),r:"classic"}];
+  S.quip="Rory takes it! Juno, pick your spot. The marker is uncapped.";
+  S.clock=Date.now()+97000; S.ts=Date.now();
+}
+
+/* ---------------- boot ---------------- */
+(async function boot(){
+  if(DEMO){ loadDemo(); if(DEMO==="ref"||DEMO==="builder"){ enterHost(); if(DEMO==="builder") showView("setup"); } setLive(true,"demo preview"); render(); return; }
+  const saved=localStorage.getItem("shs2_"+ROOM);
+  if(saved){ try{ S=JSON.parse(saved); lastTs=S.ts||0; }catch(e){} }
+  if(sessionStorage.getItem("shs_host")==="1") enterHost();
+  render();
+  const ok=await pollLatest(); subscribe(); if(!ok) setLive(false,"offline");
+})();
+</script>
+</body>
+</html>
